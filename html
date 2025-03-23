@@ -3,111 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escritura con Movimiento de Ojos</title>
+    <title>Escribe con Ojos - Tablet</title>
     <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+        }
+        .teclado {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px;
+        }
+        .letra {
+            padding: 15px;
+            border: 2px solid #000;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        #frase {
+            font-size: 30px;
+            margin: 20px;
+            height: 50px;
+        }
+        #calibracion {
             margin-top: 50px;
-        }
-        #calibrationPoints {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 20px;
-        }
-        .calibrationPoint {
-            width: 20px;
-            height: 20px;
-            background-color: red;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        #textArea {
-            width: 80%;
-            height: 200px;
-            margin: 20px auto;
-            padding: 10px;
-            border: 1px solid #000;
-            font-size: 18px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <h1>Escritura con Movimiento de Ojos</h1>
-    <div id="calibration">
-        <p>Por favor, calibra el seguimiento ocular haciendo clic en los puntos rojos.</p>
-        <div id="calibrationPoints">
-            <div class="calibrationPoint" id="point1"></div>
-            <div class="calibrationPoint" id="point2"></div>
-            <div class="calibrationPoint" id="point3"></div>
-            <div class="calibrationPoint" id="point4"></div>
-        </div>
-        <button id="startButton" disabled>Comenzar</button>
+    <h1>Escribe con tus Ojos 👁️</h1>
+    
+    <!-- Paso 1: Calibración -->
+    <div id="calibracion">
+        <p>🔴 Toca 3 puntos para calibrar:</p>
+        <button class="punto-calibracion" style="margin: 50px;">Toca aquí</button>
+        <button class="punto-calibracion" style="margin: 50px;">Toca aquí</button>
+        <button class="punto-calibracion" style="margin: 50px;">Toca aquí</button>
     </div>
-    <div id="writingSection" style="display: none;">
-        <div id="textArea" contenteditable="true"></div>
-        <p>Mira los caracteres para seleccionarlos.</p>
+
+    <!-- Paso 2: Teclado -->
+    <div id="teclado" style="display: none;">
+        <div id="frase"></div>
+        <div class="teclado">
+            <div class="letra">A</div>
+            <div class="letra">E</div>
+            <div class="letra">I</div>
+            <div class="letra">O</div>
+            <div class="letra">U</div>
+            <div class="letra">M</div>
+            <div class="letra">N</div>
+            <div class="letra">S</div>
+            <div class="letra"> </div>
+            <div class="letra">.</div>
+        </div>
     </div>
 
     <script>
-        // Inicializar WebGazer
+        // 1. Configurar WebGazer
         webgazer.setRegression('ridge')
-            .setTracker('TFFacemesh')
-            .begin();
+                .setTracker('TFFacemesh')
+                .showPredictionPoints(false);
 
-        // Variables para la calibración
-        let calibrationPoints = ['point1', 'point2', 'point3', 'point4'];
-        let currentCalibrationPoint = 0;
+        // 2. Calibración
+        let puntosCalibracion = document.querySelectorAll('.punto-calibracion');
+        let calibracionCompletada = 0;
 
-        // Función para manejar la calibración
-        function calibrate(pointId) {
-            let point = document.getElementById(pointId);
-            point.addEventListener('click', function() {
-                webgazer.addCalibrationPoint(point.offsetLeft + 10, point.offsetTop + 10);
-                point.style.backgroundColor = 'green'; // Cambiar color a verde cuando se calibra
-
-                currentCalibrationPoint++;
-                if (currentCalibrationPoint < calibrationPoints.length) {
-                    calibrate(calibrationPoints[currentCalibrationPoint]);
-                } else {
-                    document.getElementById('startButton').disabled = false;
-                    alert("Calibración completada. Haz clic en 'Comenzar' para empezar a escribir.");
+        puntosCalibracion.forEach(punto => {
+            punto.addEventListener('click', (e) => {
+                let x = e.pageX;
+                let y = e.pageY;
+                
+                // Guardar punto de calibración
+                webgazer.addCalibrationPoint(x, y);
+                punto.style.background = '#90EE90'; // Verde cuando está calibrado
+                
+                calibracionCompletada++;
+                
+                // Cuando se completan 3 puntos
+                if(calibracionCompletada === 3) {
+                    document.getElementById('calibracion').style.display = 'none';
+                    document.getElementById('teclado').style.display = 'block';
+                    webgazer.begin();
                 }
             });
-        }
-
-        // Iniciar la calibración
-        calibrate(calibrationPoints[currentCalibrationPoint]);
-
-        // Función para comenzar la escritura
-        document.getElementById('startButton').addEventListener('click', function() {
-            document.getElementById('calibration').style.display = 'none';
-            document.getElementById('writingSection').style.display = 'block';
-
-            // Lógica para seleccionar caracteres
-            let textArea = document.getElementById('textArea');
-            let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            let characterGrid = []; // Puedes crear una cuadrícula de caracteres en la pantalla
-
-            webgazer.setGazeListener(function(data, elapsedTime) {
-                if (data == null) return;
-
-                let x = data.x;
-                let y = data.y;
-
-                // Lógica para seleccionar un caracter basado en la posición de la mirada
-                let selectedChar = characters[Math.floor(Math.random() * characters.length)]; // Ejemplo aleatorio
-                textArea.innerText += selectedChar;
-            }).begin();
         });
 
-        // Detener el seguimiento cuando se cierre la página
+        // 3. Detectar mirada en letras
+        let temporizadores = {};
+        
+        document.querySelectorAll('.letra').forEach(letra => {
+            letra.addEventListener('mouseenter', () => {
+                // Iniciar temporizador para selección
+                temporizadores[letra.textContent] = setTimeout(() => {
+                    document.getElementById('frase').textContent += letra.textContent;
+                }, 1500); // 1.5 segundos de mirada
+            });
+
+            letra.addEventListener('mouseleave', () => {
+                clearTimeout(temporizadores[letra.textContent]);
+            });
+        });
+
+        // Detener al cerrar
         window.onbeforeunload = function() {
             webgazer.end();
         }
