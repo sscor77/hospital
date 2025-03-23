@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escritura con Movimiento de Ojos</title>
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #calibrationPoints {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .calibrationPoint {
+            width: 20px;
+            height: 20px;
+            background-color: red;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        #textArea {
+            width: 80%;
+            height: 200px;
+            margin: 20px auto;
+            padding: 10px;
+            border: 1px solid #000;
+            font-size: 18px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Escritura con Movimiento de Ojos</h1>
+    <div id="calibration">
+        <p>Por favor, calibra el seguimiento ocular haciendo clic en los puntos rojos.</p>
+        <div id="calibrationPoints">
+            <div class="calibrationPoint" id="point1"></div>
+            <div class="calibrationPoint" id="point2"></div>
+            <div class="calibrationPoint" id="point3"></div>
+            <div class="calibrationPoint" id="point4"></div>
+        </div>
+        <button id="startButton" disabled>Comenzar</button>
+    </div>
+    <div id="writingSection" style="display: none;">
+        <div id="textArea" contenteditable="true"></div>
+        <p>Mira los caracteres para seleccionarlos.</p>
+    </div>
+
+    <script>
+        // Inicializar WebGazer
+        webgazer.setRegression('ridge')
+            .setTracker('TFFacemesh')
+            .begin();
+
+        // Variables para la calibración
+        let calibrationPoints = ['point1', 'point2', 'point3', 'point4'];
+        let currentCalibrationPoint = 0;
+
+        // Función para manejar la calibración
+        function calibrate(pointId) {
+            let point = document.getElementById(pointId);
+            point.addEventListener('click', function() {
+                webgazer.addCalibrationPoint(point.offsetLeft + 10, point.offsetTop + 10);
+                point.style.backgroundColor = 'green'; // Cambiar color a verde cuando se calibra
+
+                currentCalibrationPoint++;
+                if (currentCalibrationPoint < calibrationPoints.length) {
+                    calibrate(calibrationPoints[currentCalibrationPoint]);
+                } else {
+                    document.getElementById('startButton').disabled = false;
+                    alert("Calibración completada. Haz clic en 'Comenzar' para empezar a escribir.");
+                }
+            });
+        }
+
+        // Iniciar la calibración
+        calibrate(calibrationPoints[currentCalibrationPoint]);
+
+        // Función para comenzar la escritura
+        document.getElementById('startButton').addEventListener('click', function() {
+            document.getElementById('calibration').style.display = 'none';
+            document.getElementById('writingSection').style.display = 'block';
+
+            // Lógica para seleccionar caracteres
+            let textArea = document.getElementById('textArea');
+            let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            let characterGrid = []; // Puedes crear una cuadrícula de caracteres en la pantalla
+
+            webgazer.setGazeListener(function(data, elapsedTime) {
+                if (data == null) return;
+
+                let x = data.x;
+                let y = data.y;
+
+                // Lógica para seleccionar un caracter basado en la posición de la mirada
+                let selectedChar = characters[Math.floor(Math.random() * characters.length)]; // Ejemplo aleatorio
+                textArea.innerText += selectedChar;
+            }).begin();
+        });
+
+        // Detener el seguimiento cuando se cierre la página
+        window.onbeforeunload = function() {
+            webgazer.end();
+        }
+    </script>
+</body>
+</html>
